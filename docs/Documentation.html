@@ -1,0 +1,643 @@
+<div class="wikidoc">
+<h1>ctsTraffic Usage</h1>
+<p>&nbsp;</p>
+<p>ctsTraffic is a tool built by the Windows Networking team originally designed at the start of Windows 8. It was built from the ground-up with core requirement to be able to shape and model API and protocol behaviors to verify synthetic workloads across diverse
+ scenarios, all while providing accurate and reliable information reflecting the network&rsquo;s reliability and integrity for each scenario.</p>
+<h1>&nbsp;</h1>
+<h1>Original&nbsp;goals of ctsTraffic</h1>
+<p>There are 5 core requisite properties that ctsTraffic was designed from the beginning to satisfy. These qualities were derived from learning from prior internal and external tools and spending more time understanding the diversity of needs that Networking
+ was being asked to satisfy.</p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><strong>Reliability</strong> &ndash; our foremost requirement: we absolutely must have high confidence in the reliability and integrity of the tool and the information it is reporting; this level of reliability and integrity must scale to all scenarios
+ we need to test. </li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><strong>Transparency</strong>: we require tooling that provides a high degree of transparency into how the network is properly servicing the application. Notably, we require accurate details on connection integrity as well as data integrity &ndash; across
+ any and all API usage patterns, any and all protocol patterns, and lastly across any degree of scale we need to push the tool.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><strong>Scalability</strong>: we require tooling that can scale across a wide variety of targeted scenarios: we must be able to scale down (to very small devices and phones); we must be able to scale up (to greater numbers of CPUs; to greater available
+ bandwidth); we must be able to scale out (to high numbers of concurrent connections). All scale targets must be met without sacrificing reliability or transparency.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><strong>API extensibility</strong>: we need the ability to add new APIs and API calling patterns quickly and with low-risk without needing to build yet another highly reliable highly scalable Winsock app. This extensibility must not degrade the reliability
+ and transparency requirements. </li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><strong>Protocol extensibility</strong>: we need tooling that can be quickly and easily updated to reproduce various protocol patterns (patterns of sending &amp; receiving data). This extensibility must meet all scalability targets, reliability targets,
+ and scalability targets. </li></ul>
+<p>&nbsp;</p>
+<h1>Client &amp; Server Options</h1>
+<p>ctsTraffic is designed as a classic client/server model, where the server will wait listening for client requests, while the client initiates connections to servers. ctsTraffic servers will accept any number of connections from any number of clients; ctsTraffic
+ clients can target and make connections to one or more servers.</p>
+<p>In order for the client and server to be in sync after making a connection, many of the same parameters must be specified on each respective command lines. This allows for a precise pattern of data to flow in expected directions between the client and server
+ so each side can make the proper level of validation to assess the correctness of their scenario. This section covers the common and required options for client/server execution.</p>
+<h2>Accessing Help</h2>
+<h3>-Help</h3>
+<p>Accessing help for ctsTraffic is targetable based on the intended scenario.</p>
+<h4><em>&ndash;Help</em></h4>
+<p>The default option displays information on the common <a href="#_Server-Specific_Options">
+Server</a> and <a href="#_Client-Specific_Options">Client</a> options.</p>
+<h4><em>&ndash;Help:tcp</em></h4>
+<p>This help option displays information detailing the various options specific to
+<a href="#_TCP_Scenarios">TCP Scenarios</a>.</p>
+<h4><em>&ndash;Help:udp</em></h4>
+<p>This help option displays information detailing the various options specific to
+<a href="#_UDP_Scenarios">UDP Scenarios</a>.</p>
+<h4><em>&ndash;Help:logging</em></h4>
+<p>This help option displays information detailing the various option one has in controlling the
+<a href="#_Output_Options">Output Options</a>: the formatting of the output, filenames for the desired output, and the verbosity of the output to console.</p>
+<h4><em>&ndash;Help:advanced</em></h4>
+<p>This options displays atypical scenario-specific <a href="#_Advanced_Options">
+Advanced Options</a>. These options were developed to support unique scenarios and are not expected to be used for typical usage patterns.</p>
+<p>&nbsp;</p>
+<h2><a name="_Server-Specific_Options"></a>Server-Specific Options</h2>
+<h3>-Listen</h3>
+<p>ctsTraffic functioning as a &lsquo;server&rsquo; is defined by listening for incoming connection requests. The
+<strong>&ndash;Listen</strong> parameter can accept an IPv4 or IPv6 address (must be already assigned local to that machine), or it can accept
+<strong>&ndash;Listen:*</strong> to listen on <em>any </em>address that is local to the system. Additionally,<strong> &ndash;Listen</strong> can be specified multiple times if there are multiple exclusive IP addresses that one wants to listen on. Yet another
+ option with <strong>&ndash;Listen </strong>is one could specify to only listen on all IPv4
+<em>or </em>all IPv6 addresses. For example, <strong>&ndash;Listen:0.0.0.0</strong> would listen for connections on all local IPv4 addresses.</p>
+<p>The most common option is to specify <strong>&ndash;Listen:*</strong>, as most servers are not concerned with controlling which IP address a client can connect. Specifying individual IP addresses via one or more
+<strong>&ndash;Listen</strong> arguments is more common when one needs firm control over which interfaces are used for a scenario (<em>e.g. in a multi-homed scenario where only a subset of available interfaces are to be used</em>).</p>
+<h3>-ServerExitLimit</h3>
+<p>This option exists to simplify automated deployments where it is fore-known exactly the number of connections an instance of ctsTraffic should handle before exiting.</p>
+<h4><em>Default value: -ServerExitLimit:0xffffffffffffffff&nbsp;&nbsp; (MAXULONGLONG, effectively infinite)</em></h4>
+<p>&nbsp;</p>
+<h2><a name="_Client-Specific_Options"></a>Client-Specific Options</h2>
+<h3>-Connections</h3>
+<p>This option controls the total number of concurrent connections being made by client to the server(s) specified by
+<strong>&ndash;Target</strong>. For example, <strong>&ndash;Connections:100</strong> would instruct ctsTraffic will spin up a total of 100 connections to the specified server
+<strong>&ndash;Target</strong> addresses; once any connection completes, ctsTraffic will immediately create a new connection to maintain a total of 100 concurrent connections. This will repeat until ctsTraffic has completed a total number of connections equal
+ to <strong>&ndash;Connections</strong> * <strong>&ndash;Iterations</strong>.</p>
+<h4><em>Default value: -Connections:8</em></h4>
+<h3>-Iterations</h3>
+<p>This option controls the number of times ctsTraffic will cycle across all the connections specified with
+<strong>&ndash;Connections</strong>. Note that <strong>&ndash;Iterations</strong> is not itself the total aggregate number of connections a client will make to the
+<strong>&ndash;Target</strong> servers: the total number of connections is equal to
+<strong>&ndash;Connections</strong> * <strong>&ndash;Iterations</strong>.</p>
+<p>As an example, if <strong>&ndash;Connections:16</strong> <strong>&ndash;Iterations:100</strong> were specified, ctsTraffic would work to keep exactly 16 active connections established, making new connections once prior connections had completed, until a
+ total of 1600 connections have been made, at which time the client would exit.</p>
+<h4><em>Default value: -Iterations:0xffffffffffffffff&nbsp;&nbsp; (MAXULONGLONG &ndash; effectively infinite)</em></h4>
+<h3>-Target</h3>
+<p>This option instructs the client which server(s) it should attempt to establish connections. This option allows for different methods to express the target server: one can specify the flat name of the server; one can specify the fully-qualified name of the
+ server; one can specify an IPv4 address of the server; one can specify an IPv6 address of the server. Also note that multiple
+<strong>&ndash;Target</strong> command line arguments can be given to support targeting multiple servers or multiple specific IP addresses on a single server. Additionally,
+<strong>&ndash;Target:loopback</strong> will resolve to the known loopback IPv4 address of 127.0.0.1 and the know loopback IPv6 address of [::1] for when both client and server on the same machine.</p>
+<p>When the client looks to make a new connection, it will iteratively target each IP addresses resolved from the one or more
+<strong>&ndash;Target</strong> options specified.</p>
+<p>&nbsp;</p>
+<h2>Always-Required Options</h2>
+<p>While most parameters can be set individually on the client or server independently, there are a few parameters which must be in sync between the client and server. The following parameters
+<em>must be identical</em> on connected ctsTraffic client and server instances:</p>
+<h3>-Port</h3>
+<p>The UDP or TCP port on which the server is listening must be established between the client and the server so the client will be able to successfully connect to the target server. When specified on the server command line,
+<strong>&ndash;Port </strong>will control the <em>local </em>port which the server will listen; when specified on the client command line,
+<strong>&ndash;Port </strong>will control the <em>target</em> port which the client will connect.</p>
+<h4><em>Default value: -Port:4444</em></h4>
+<h3>-Protocol</h3>
+<p>Both the client and server must agree to connect over TCP or UDP. The TCP protocol supports various protocol patterns via
+<strong>&ndash;Pattern</strong> controlling the flow of data being sent and received. The UDP protocol currently only supports a single protocol pattern: streaming from the server to the client.</p>
+<h4><em>Default value: -Protocol:TCP</em></h4>
+<h3>-Verify</h3>
+<p>Both the client and server must agree to perform the same level of validation of the connections established and data transferred. Verify currently supports two options:</p>
+<h4><em>-Verify:connection</em></h4>
+<p>The <strong>&ndash;Verify:connection</strong> level of verification instructs ctsTraffic
+<em>not</em> to look at the data being sent and received, only to look at the integrity of the connection and the expected number of bytes being successfully sent and received.</p>
+<p>For TCP scenarios, not only will errors will be raised if a connection fails, but
+<strong>&ndash;Verify:connection </strong>will also raise errors if a connection receives more bytes than expected or if a connection terminates before transferring all the expected data.</p>
+<p>For UDP scenarios, errors will be raised if Winsock functions fail. <strong>&ndash;Verify:connection</strong> will also log frames as dropped if the number of bytes in any frame isn&rsquo;t the exact number of expected bytes as well as logging error frames
+ when datagrams are received and stamped with an unexpected sequence number.</p>
+<h4><em>-Verify:data</em></h4>
+<p>The <strong>&ndash;Verify:data</strong> level of verification is a superset of<strong>&ndash;Verify:connection</strong>. In addition to the connection integrity checks, data validation will inspect and validate every received buffer of data against a known
+ bit-pattern (the sender-side will always send from the same buffer pattern). Data is validated immediately upon successfully every receive IO request. Should any discrepancy be found, an error is immediately logged with such details and the connection is failed
+ and terminated.</p>
+<h4><em>Default value: -Verify:data</em></h4>
+<p>&nbsp;</p>
+<h2>TCP-Required Parameters</h2>
+<p>An overview of these options is presented here as these are required on both client and server. See
+<a href="#_TCP_Scenarios">TCP Scenarios</a> for a more thorough coverage of TCP-related options.</p>
+<h3>-Pattern</h3>
+<p>For TCP connections, the wire-protocol must be agreed upon between the client and server so both sides of the connection remain in sync with regards to who should be sending how much data.</p>
+<h4><em>Default value: -Pattern:Push</em></h4>
+<h3>-Transfer</h3>
+<p>For TCP connections, the total number of bytes transferred must be pre-established between the client and the server in order to properly validate the connection integrity and data integrity of the scenario. Transfer represents the total number of bytes
+ both sent and received, the direction of the data controlled by <strong>&ndash;Pattern</strong>.</p>
+<h4><em>Default value: -Transfer:0x40000000 (1 GByte)</em></h4>
+<p>&nbsp;</p>
+<h2>UDP-Required Parameters</h2>
+<p>An overview of these options is presented here as these are required on both client and server. See
+<a href="#_UDP_Scenarios">UDP Scenarios</a> for a more thorough coverage of UDP-related options.</p>
+<h3>-BitsPerSecond</h3>
+<p>For UDP connections, the bit-rate at which datagrams will be sent from the server to the client must be pre-established as the simple codec being used deliberately will process frames of data at a fixed rate (not adaptive to latency or drop rates).</p>
+<h3>-FrameRate</h3>
+<p>For UDP connections, the frame rate by which datagrams are sent and processed must be pre-established to keep the client and server in sync throughout the UDP stream.</p>
+<h3>-StreamLength</h3>
+<p>For UDP connections, the total length of the stream (in seconds) must be pre-established between the client and server to enable proper validation of all data sent and received.</p>
+<p><strong>&ndash;BitsPerSecond</strong> and <strong>&ndash;FrameRate</strong> work together to precisely control the flow of datagrams. For example, if
+<strong>&ndash;BitsPerSecond:8000000 &ndash;FrameRate:100</strong> were specified, 10000-byte datagrams will be sent 100 times per second (8000000 / 8 == 1000000 bytes per second, evenly split every 10 milliseconds &ndash;&gt; 1 second / 100).</p>
+<p>&nbsp;</p>
+<h1><a name="_TCP_Scenarios"></a>TCP Scenarios</h1>
+<h2>API Usage Options</h2>
+<h3><a name="_-IO"></a>-IO</h3>
+<p>ctsTraffic exposes 2 core API usage patterns that facilitate scaling across all scalability targets. The 2 Windows programming models are a) OVERLAPPED I/O using the Windows native Threadpool &#43; IO Completion Ports, and b) the new queuing completion model
+ of the Winsock Registered IO APIs.</p>
+<h4><em>-IO:IOCP</em></h4>
+<p>This is the default API usage pattern in ctsTraffic. It is the generally recommended API model to developers to scale well across a wide range of targets. This API model leverages OVERLAPPED I/O support from the NT operating system to manage individual IO
+ requests and efficiently queue the completions to IO completion ports. ctsTraffic additionally employs the NT threadpool to distribute these IO completions across a pool of worker threads balanced across system resources, controlled and managed by the NT threadpool.
+ Whereas developers were forced to manage and tweak their own threads in prior OS releases, it is recommended for modern development to leverage these new Windows threadpool APIs for a high performance, highly scalable thread pool implementation.</p>
+<p>Consequently, ctsTraffic does not expose knobs to tweak or control how one uses &ldquo;threads&rdquo; with regards to IO requests: instead, IO is automatically efficiently distributed through the native optimizations implemented by the OS with IO completion
+ ports and the NT threadpool.</p>
+<p>This API pattern additionally supports handing successful completion in-line. The default behavior when using WSASend and WSARecv with OVERLAPPED I/O is for the IO completion handler to
+<em>always be notified</em>, even if the API call completes immediately (returns 0 &ndash; not WSA_IO_PENDING which is returned if the call cannot be immediately satisfied). This default behavior can incur additional overhead which can be particularly noticeable
+ at various scale targets (e.g. extra CPU on really small devices; extra CPU when running a very high speeds). ctsTraffic utilizes an option first made available in Windows Vista: calling SetFileCompletionNotification with the flag FILE_SKIP_COMPLETION_PORT_ON_SUCCESS.
+ This flag will override the default Winsock behavior and when an OVERLAPPED API call completes immediately, the IO completion handler
+<em>will not be notified</em>.</p>
+<p><strong><em>Note that this new flag can cause issue if there are Winsock Layered Service Providers (LSPs) installed. It is recommended not to run ctsTraffic with any LSPs installed: these 3<sup>rd</sup> party extension libraries utilize deprecated APIs and
+ software shipping with these libraries are no longer given a Windows Logo.</em></strong></p>
+<h4><em>-IO:RIOIOCP</em></h4>
+<p>Windows 8 added new extensions to the Winsock 2.2 APIs dubbed &lsquo;Registered IO&rsquo; APIs, or &lsquo;RIO&rsquo;. These APIs enable unique memory and IO models as compared to the existing Winsock APIs. Key differences include:</p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>All memory buffers in the app must first be &ldquo;registered&rdquo; using RIO APIs before being used to send or receive data. Registering a buffer will enable Winsock to &lsquo;pin&rsquo; the buffers into physical memory ahead of any API call, thus
+ avoiding the memory probe and lock costs associated with every buffer passed through the existing Winsock APIs. Since the memory buffers are pre-pinned, send and receive operations avoid these latency costs associated with the kernel memory manager.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>All IO requests move through a queuing-model versus the existing IO models exposed through Winsock APIs. Queues allow for efficient signaling between the application and the networking stack when IO requests are ready and when IO requests have been completed.
+ Since standard eventing and IO manager infrastructure is no longer necessary, send and receive operations avoid these associated latency costs.
+</li></ul>
+<p>It should be noted that this new Winsock IO model with RIO APIs comes with tradeoffs that developers weigh as they architect and design their solutions. There are non-trivial memory costs associated with this model (since all buffers must be pre-pinned to
+ physical memory) which can affect scale as one handles larger numbers of connections. Additionally, developers must also design and implement their own thread pool solution to scale across system resources. This includes designing and implementing proper synchronization
+ around the RIO request queues and completion queues as well as designing how their threads are to be notified of IO completions. Thus, while RIO affords developers much lower latencies and predictable jitter rates, it also demands more low-level architectural
+ design. For example, a developer must effectively balance the numbers of completion queues with the numbers of threads in their thread pools, as the application must provide locks around accessing these queues.</p>
+<p>The RIO APIs were specifically targeting a subset of Enterprise scenarios where the workloads make extremely high numbers of send and receive requests with small buffers. These workload requirements demand a very low latency between one app sending and the
+ other app receiving; most of the workloads additionally require a stable latency pattern with their IO requests (also called jitter).</p>
+<p>It&rsquo;s highly suggested therefore to keep the default option unless Registered IO is requisite for the customer deployment (<em>e.g. using RIO APIs as a high-performance IPC mechanism between services</em>).</p>
+<h5>Default value: -IO:IOCP'</h5>
+<p>&nbsp;</p>
+<h2>Protocol Options</h2>
+<p>As one of its requisite qualities, ctsTraffic has the ability to control many protocol characteristics network traffic and its protocols.</p>
+<h3>-Buffer</h3>
+<p>An application&rsquo;s use of the TCP protocol is impacted by how it supplies buffers to the networking stack to send or receive data. The size and frequency of buffers supplied by the application impact the characteristics of a connection as the TCP protocol
+ works hard to manage optimal throughput via flow control and congestion control.</p>
+<h4><em>Default value: -Buffer:65536</em></h4>
+<p>The default buffer that is provided with every send or receive request is 64k bytes in size. This is quite reasonable for most workloads that don&rsquo;t have other scenario requirements. Scenarios representing file transfers may want to use much larger
+ buffers per request, while web scenarios may use smaller buffers per their usage models.</p>
+<h4><em>-Buffer:[1024,16384]</em></h4>
+<p>Additionally, ctsTraffic allows for a random-distribution of different buffer sizes used across its established TCP connections. This can be useful when there is a need to execute workloads simulating a diversity of IO requests. For example, one may want
+ to choose from a set of small buffer sizes when simulating internet clients. This will instruct ctsTraffic to pick a random buffer size between these 2 values inclusively to be used for each new TCP connection.</p>
+<h3><a name="_-Pattern"></a>-Pattern</h3>
+<p>ctsTraffic exposes a variety of protocol patterns to leverage when establishing a scenario to execute. These patterns describe the flow of information between the client and the server across each individual TCP connection. Note every pattern has an interaction
+ with the other ctsTraffic TCP parameters.</p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>The total number of bytes sent &#43; received will equal the value specified with
+<strong>&ndash;Transfer</strong>. </li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>The buffer size used for each request will be referenced from the <strong>
+&ndash;Buffer</strong> parameter. Note that this can be over-ridden by the <strong>
+&ndash;Pattern</strong> if the pattern requires fewer bytes sent or received in the next IO request.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>When data validation is requested (<strong>&ndash;Verify:Data</strong>), buffers will be allocated for every connection to receive data (to enable data validation). When data validation is not requested (<strong>&ndash;Verify:Connection</strong>), a
+ single static buffer is used for every connection, eliminating the per-connection memory overhead and optimizing for memory locality.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Send requests will always pull from the same pre-allocated buffer which was pre-populated with a unique bit pattern. This avoids memory any overhead for per-connection buffer allocations while still allowing deep buffer validation when receiving this
+ sent data. </li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>All send and receive requests indicated by the specified <strong>&ndash;Pattern
+</strong>will be executed through the API patterns controlled with the <strong>&ndash;IO
+</strong>option. </li></ul>
+<p>Also note that the <strong>&ndash;Pattern</strong> option must be identical on both the client and the server.</p>
+<h4><em>-Pattern:Push</em></h4>
+<p>This is the default TCP pattern. This pattern is similar to a &ldquo;client upload&rdquo; network usage pattern. Upon the client connecting to the server, the client will immediately begin sending data to the server. The server will continuously post receives
+ until all expected data is received and validated.</p>
+<h4><em>-Pattern:Pull</em></h4>
+<p>This pattern is similar to a &ldquo;client download&rdquo; network usage pattern. Upon the client connecting to the server, the server will immediately begin sending data to the. The client will continuously post receives until all expected data is received
+ and validated.</p>
+<h4><em>-Pattern:PushPull</em></h4>
+<p>This pattern is similar to &lsquo;request-response&rsquo; protocols such as HTTP. Upon the client connecting to the server, the client and server will take turns sending and receiving data; at any point in time, data will only be traveling in one direction
+ between the client and server, never being sent and received concurrently.</p>
+<p>This alternating pattern starts with the client first sending data to the server (the number of bytes controlled by
+<strong>&ndash;PushBytes</strong>). After all bytes are successfully sent and received, the flow direction alternates with the server sending data to the client (the number of bytes controlled by
+<strong>&ndash;PullBytes</strong>). This pattern will continue to alternate between which side is sending or receiving until the total number of bytes (controlled with
+<strong>&ndash;Transfer</strong>) has completed.</p>
+<p>Note that <strong>&ndash;PushBytes</strong> and <strong>&ndash;PullBytes</strong> interact with
+<strong>&ndash;Buffer</strong>: the smaller is used when controlling the size of each IO request.</p>
+<h5>-PushBytes</h5>
+<p>This parameter is only applicable when <strong>&ndash;Pattern:PushPull</strong> is specified. This parameter controls the number of bytes sent
+<em>from the client to the server</em> before the protocol alternates direction and the server begins sending to the client.</p>
+<h6>Default value: -PushBytes:1048576&nbsp;&nbsp; (1MB)</h6>
+<h5>-PullBytes</h5>
+<p>This parameter is only applicable when <strong>&ndash;Pattern:PushPull</strong> is specified. This parameter controls the number of bytes sent
+<em>from the server to the client</em> before the protocol alternates direction and the client begins sending data to the server.</p>
+<h6>Default value: -PushBytes:1048576&nbsp;&nbsp; (1MB)</h6>
+<p>&nbsp;</p>
+<h4><em>-Pattern:Duplex</em></h4>
+<p>This pattern exercises the full duplex sending and receiving of traffic concurrently between the client and server. Upon the client connecting to the server, both the client and server is simultaneously begin sending exactly &frac12; of the total bytes to
+ transfer (controlled with <strong>&ndash;Transfer</strong>). The client and server will also be continuously posting receives to receive and validate data as it sends.</p>
+<h4><em>Default value: -Pattern:Push</em></h4>
+<p>&nbsp;</p>
+<h3>-RateLimit</h3>
+<p>This option is provided to enable users to carefully control the number of bytes being pushed across the wire when they don&rsquo;t want to be running at full line-rate.
+<strong>&ndash;RateLimit</strong> is specified in terms of bytes/second, with the default being no rate limiting.</p>
+<p><strong>&ndash;RateLimit</strong> is implemented by splitting the total bytes/second into a sub-second slices and sending each slice at the precise sub-second time offset. The default is to split into 100 millisecond time slices. It does this to more evenly
+ distribute the rate-limited traffic across each 1-second period.</p>
+<p>For example, if one wanted to Rate-limit a connection to resemble US ISP cable connectivity, one might specify
+<strong>&ndash;RateLimit:2097152</strong> (2 MB/sec, or 16 Mbits/sec). As the default rate distribution is split across 100ms time slices, ctsTraffic will send 209715 bytes every 100ms.</p>
+<h4><em>Default Value: -RateLimit:0&nbsp;&nbsp; (no rate limits)</em></h4>
+<p>&nbsp;</p>
+<h3>-Transfer</h3>
+<p>This option controls the total number of bytes being sent and received across every TCP connection. The default value is 1 GB (1073741824 bytes). This total is factored into the
+<strong>&ndash;Pattern</strong> specified.</p>
+<p>Note that this option must be identical on both the client and the server.</p>
+<h4><em>Default value: -Transfer:0x40000000&nbsp;&nbsp; (1 GByte)</em></h4>
+<p>&nbsp;</p>
+<h2><a name="_Status_Updates"></a>Status Updates</h2>
+<p>The status output for TCP connections collect data points across 6 areas: Send bytes/sec, Receive bytes/sec, In-flight connections, Completed connections, Network Errors, and Data Errors.</p>
+<p>An example output using the Duplex TCP protocol pattern over loopback looks like this (removing the connection data). This output is from ctsTraffic running as a server with status output set to write every 1000 milliseconds.</p>
+<p><em>ctsTraffic.exe &ndash;Listen:* -Pattern:Duplex &ndash;StatusUpdate:1000 &ndash;ConsoleVerbosity:1 &ndash;StatusUpdate:1000</em></p>
+<p>Legend:</p>
+<p>* TimeSlice - (seconds) cumulative runtime</p>
+<p>* Send &amp; Recv Rates - bytes/sec that were transferred within the TimeSlice period</p>
+<p>* In-Flight - count of established connections transmitting IO pattern data</p>
+<p>* Completed - cumulative count of successfully completed IO patterns</p>
+<p>* Network Errors - cumulative count of failed IO patterns due to Winsock errors</p>
+<p>* Data Errors - cumulative count of failed IO patterns due to data errors</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>TimeSlice&nbsp;&nbsp;&nbsp;&nbsp; SendBps&nbsp;&nbsp;&nbsp;&nbsp; RecvBps&nbsp;&nbsp; In-Flight Completed NetError DataError</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.0&nbsp;&nbsp; 234449966&nbsp;&nbsp; 178277166&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.0&nbsp;&nbsp; 232128512&nbsp;&nbsp; 180549440&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.0&nbsp;&nbsp; 208327224&nbsp;&nbsp; 189645394&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.0&nbsp;&nbsp; 183159671&nbsp;&nbsp; 187108484&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5.0&nbsp;&nbsp; 185860096&nbsp;&nbsp; 196790056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.0&nbsp;&nbsp; 200929054&nbsp;&nbsp; 157865278&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7.0&nbsp;&nbsp; 182124544&nbsp;&nbsp; 191705460&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8.0&nbsp;&nbsp; 183697408&nbsp;&nbsp; 163743876&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9.0&nbsp;&nbsp; 199163904&nbsp;&nbsp; 186973896&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 10.0&nbsp;&nbsp; 175308800&nbsp;&nbsp; 193139876&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 11.0&nbsp;&nbsp; 170655744&nbsp;&nbsp; 152012496&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 12.0&nbsp;&nbsp; 192086016&nbsp;&nbsp; 190928320&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 13.0&nbsp;&nbsp; 148111360&nbsp;&nbsp; 166126132&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 14.0&nbsp;&nbsp; 176881664&nbsp;&nbsp; 165917844&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 15.0&nbsp;&nbsp; 198705152&nbsp;&nbsp; 187278856&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 16.0&nbsp;&nbsp; 174063616&nbsp;&nbsp; 193212776&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 17.0&nbsp;&nbsp; 192282624&nbsp;&nbsp; 171599528&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 18.0&nbsp;&nbsp; 183697408&nbsp;&nbsp; 189525108&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 19.0&nbsp;&nbsp; 167182336&nbsp;&nbsp; 188512032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 20.0&nbsp;&nbsp; 204013568&nbsp;&nbsp; 163306444&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 21.0&nbsp;&nbsp; 159318016&nbsp;&nbsp; 213575492&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 22.0&nbsp;&nbsp; 193724416&nbsp;&nbsp; 161491088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 23.0&nbsp;&nbsp; 148504576&nbsp;&nbsp; 172160152&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 23.6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 204161&nbsp;&nbsp; 238603457&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>Timeslice</h3>
+<p>This column identifies the time-offset from the start of the test. This allows for easier understanding of time slice deltas and the processing of information over a specified amount of time.</p>
+<h3>SendBps</h3>
+<p>This column calculates the number of bytes/second that were <em>sent</em> within the specified time slice. Here, the total # of bytes transferred are divided by 1 second before printing (since
+<strong>&ndash;StatusUpdate</strong> was 1 second).</p>
+<h3>RecvBps</h3>
+<p>This column calculates the number of bytes/second that were <em>received</em> within the specified time slice. Here, the total # of bytes transferred are divided by 1 second before printing (since
+<strong>&ndash;StatusUpdate</strong> was 1 second).</p>
+<h3>In-Flight</h3>
+<p>This column reflects the <em>current number </em>of TCP connections transferring data. In the above example, you can see that at 17 seconds, 2 TCP connections completed, dropping the In-Flight column down by two to 8 active TCP connections.</p>
+<h3>Completed</h3>
+<p>This column reflects the <em>aggregate of all successful </em>TCP connections since the start of the test. As opposed to the first 3 columns, this column does not reflect solely changes that occurred within the prior time slice, but maintains a total count.</p>
+<h3>NetError</h3>
+<p>This column reflects the <em>aggregate of all previously failed </em>TCP connections since the start of the test &ndash; specifically when failed due to a network error (<em>e.g. a failure from a Winsock API that thus caused the connection to be terminated</em>).
+ As opposed to the first 3 columns, this column does not reflect solely changes that occurred within the prior time slice, but maintains a total count.</p>
+<h3>DataError</h3>
+<p>This column reflects the <em>aggregate of all previously failed </em>TCP connections since the start of the test &ndash; specifically when failed due to a data validation error (<em>e.g. connections which transmit too few or too many bytes before terminating;
+ connections which are found to have received corrupt data</em>). As opposed to the first 3 columns, this column does not reflect solely changes that occurred within the prior time slice, but maintains a total count.</p>
+<p>&nbsp;</p>
+<h1><a name="_UDP_Scenarios"></a>UDP Scenarios</h1>
+<h2>API Usage Patterns</h2>
+<p>Currently ctsTraffic supports one API usage model with UDP datagrams: one which follows the semantics and usage found with media streaming (audio streams and video streams).</p>
+<p>The server-side of the UDP &lsquo;connection&rsquo; uses a timer wheel based off the NT threadpool APIs to guarantee datagrams are sent at specific offsets in time. Upon the timer firing, the NT threadpool calls ctsTraffic on one of its threadpool thread,
+ where ctsTraffic makes a blocking send call. These calls are blocking as Winsock does an effective job buffering and as these are set on a specific timer, there is not a need to unblock these threads and incur the latency for the send completions.</p>
+<p>The client-side of the UDP &lsquo;connection&rsquo; uses IO completion ports to receive data, uses the NT threadpool to distribute these receive calls on available threads, and handles inline completions to avoid unnecessary delays in processing data. In-line
+ completions is an option that was added in Windows to allow APIs that use OVERLAPPED I/O (such as WSARecvFrom used in ctsTraffic) to let the IO request pend asynchronously if data is not ready to complete the request (which would complete in the IO completion
+ port) <em>or </em>if the data is immediately ready to satisfy the IO request at the time it&rsquo;s made, complete the IO request in-line on an efficient fast-path.</p>
+<p>&nbsp;</p>
+<h2><a name="_Protocol_Patterns"></a>Protocol Patterns</h2>
+<p>ctsTraffic exposes a single UDP protocol pattern to facilitate crafting scenarios where the server sending datagrams to a client at a fixed size and rate. This is done to synthesize UDP protocol usage with audio and video streaming codecs while being able
+ to measure for fixed target goals.</p>
+<p>Whereas many modern media codecs will leverage a variable bitrate to dynamically adjust the sending patterns based on real-time network characteristics of throughput, latency, and loss, ctsTraffic will instead guarantee a precise and predictable streaming
+ behavior throughout the lifetime of the stream based on the user&rsquo;s options for validating the ability to sustain the specified streaming characteristics.</p>
+<p>In order to provide deeper validation, every datagram of data that is sent from the server includes a frame number. This allows the client to appropriately track every datagram received into a ring-buffer where it processes those frames at the specified
+ frame rate.</p>
+<p>As it is a common semantic for UDP streaming protocols to describe their network characteristics in terms of bits/second and frame rate, ctsTraffic surfaces that on the command line as options for this protocol.</p>
+<h3>-BitsPerSecond</h3>
+<p>This argument is required on both the server and the client, and it must match for proper validation of the tested UDP stream. ctsTraffic uses
+<strong>&ndash;BitsPerSecond </strong>to guarantee the correct buffered bytes are sent by the server every per-second interval, while the client uses the value to verify the expected size of every frame from the datagrams received from the server.</p>
+<h3>-FrameRate</h3>
+<p>This argument is required on both the server and the client, and it must match for proper validation of the tested UDP stream.
+<strong>&ndash;FrameRate</strong> is defined as &lsquo;the number of frames per second&rsquo;: the frequency that one or more datagrams will arrive to satisfy one frame of the stream. Thus in terms of network behavior:</p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>one frame is sent every (1000 / <strong>&ndash;FrameRate</strong>) milliseconds
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>one frame == (<strong>&ndash;BitsPerSecond</strong> / 8 / <strong>&ndash;FrameRate</strong>) bytes
+</li></ul>
+<p>For example, if a user were to specify <strong>&ndash;BitsPerSecond:8000000 &ndash;FrameRate:50</strong>, a 20,000-byte datagram would be sent from the server 50 times/second (every 20 ms).</p>
+<p>It should also be considered that one datagram can be at most 64kB in size &ndash; which means that frames that are larger than 64kB will be a burst of consecutive datagrams sent to satisfy that frame requirement. The client will verify that a frame is received
+ only when all required bytes for that frame have been received.</p>
+<h3>-StreamLength</h3>
+<p>This command line argument is required on both the server and the client, and it must match for proper validation of the tested UDP stream.
+<strong>&ndash;StreamLength</strong> specifies in the number of <em>seconds</em> which a stream will be sent from the server, and which the client will be processing expected frames.</p>
+<h3>-BufferDepth</h3>
+<p>This command line argument is only required on the client. <strong>&ndash;BufferDepth</strong> indicates to the client in terms of
+<em>seconds</em> the amount of initial time to allow for &lsquo;buffering&rsquo; of datagrams before initiating its timer wheel to start processing frames. This option allows for some degree of variance in the network as frames are being transferred, and has
+ common usage with real-world streaming protocols for this very purpose.</p>
+<h3>-StreamCodec</h3>
+<p>This command line argument optional only for the client. The ctsTraffic UDP protocol supports 2 basic &lsquo;codecs&rsquo;.</p>
+<h4><em>&ndash;StreamCodec:NoResends</em></h4>
+<p>This codec makes no effort to recover any dropped datagrams. When this codec is specified, all missing frames are marked as dropped as the client&rsquo;s timer wheel processes frames (based off of
+<strong>&ndash;FrameRate</strong>).</p>
+<h4><em>&ndash;StreamCodec:ResendOnce</em></h4>
+<p>This codec will make a single best-effort attempt to re-request a dropped frame. When this codec is specified, the client will &lsquo;peek&rsquo; ahead into its ring buffer (the size of that ring buffer is controlled by &ndash;<strong>BufferDepth</strong>)
+ to check if that buffered frame was indeed received. If that frame has not been received, the client will immediately send an out-of-band request back to the server to resend that missing frame.</p>
+<h4><em>Default value: &ndash;StreamCodec:NoResends</em></h4>
+<p>&nbsp;</p>
+<h2><a name="_Status_Updates_1"></a>Status Updates</h2>
+<p>As an example, to test an HD video stream scenario which transmits at 10Mbits/sec &amp; 24 frames/sec, the ctsTraffic command line would contain:</p>
+<p>ctsTraffic.exe &ndash;Listen:* &ndash;Protocol:Udp &ndash;BitsPerSecond:10000000 &ndash;FrameRate:24 &ndash;BufferDepth:4 &ndash;StreamLength:3600 &ndash;StatusUpdate:1000</p>
+<p><em>&nbsp;</em></p>
+<p><em>Note: for this example, the ctsTraffic client would have an identical command line, replacing &ndash;Listen with &ndash;Target.</em></p>
+<p><em>Note: due to odd font issues, be careful not to copy and paste directly from Word into a command shell window &ndash; unexpected / unseen characters will also be pasted in.</em></p>
+<p>The ctsTraffic server will send one frame of data (52083 bytes) 24 times per second. As this number of bytes will fit in one datagram, this would result in one 52,083 byte datagram sent every ~41 milliseconds. The server will repeat this pattern of sending
+ 52,083 24 times/second for 3600 seconds (1 hour).</p>
+<p>The ctsTraffic client would receive these same parameters, and would have a timer-wheel fire at that same cadence (24 times/second) expecting to have received the next full frame of data at each tick interval.</p>
+<p>Status output for the scenario tracks both bits/second and how frame are processed.</p>
+<p>TimeSlice&nbsp;&nbsp;&nbsp;&nbsp; Bits/Sec&nbsp;&nbsp; Completed&nbsp;&nbsp; Dropped&nbsp;&nbsp; Repeated&nbsp;&nbsp;&nbsp;&nbsp; Retries&nbsp;&nbsp; Errors</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9516655&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9989946&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 10.0&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 11.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 12.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 13.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9989946&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 14.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>15.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>16.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 17.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9999936&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</p>
+<p>&nbsp;</p>
+<h3>TimeSlice</h3>
+<p>This column identifies the time-offset from the start of the test. This allows for easier understanding of time slice deltas and the processing of information over a specified amount of time.</p>
+<h3>Bits/Sec</h3>
+<p>This column captures the number of bits/second (bytes * 8) that were <em>received</em> within the specified time slice. Here, the total # of bits transferred are divided by 1 second before printing (since StatusUpdate was 1 second).</p>
+<h3>Completed</h3>
+<p>This column captures the number of frames successfully processed within that time slice. As FrameRate was set to 24, it&rsquo;s expected that 24 will be in the Completed column, as StatusFrequency was set to 1 second.</p>
+<h3>Dropped</h3>
+<p>This column captures the number of frames that were dropped within that time slice. Dropped is determined by the client&rsquo;s timer wheel firing to &lsquo;render&rsquo; the next frame, but our ring-buffer shows that the datagram for that frame had not
+ been received.</p>
+<h3>Repeated</h3>
+<p>This column captures the number of frames which were &lsquo;repeated&rsquo; &ndash; meaning any instances where the datagrams with the same frame number were received on the client. This generally indicates an issue with the networking stack or a complex
+ routing topology where instances of datagrams being duplicated could occur.</p>
+<h3>Retries</h3>
+<p>This column captures the number of frames where the &ldquo;ResendOnce&rdquo; StreamCodec peeked ahead into the ring-buffer and found a frame that had not yet arrived (though was expected to be there). With &ndash;StreamCodec:ResendOnce specified, a request
+ to the server would have immediately been sent request that missing frame be resent.</p>
+<p>If this resend process was successful (the frame did indeed arrive before the timer wheel processed it), it is counted in the &lsquo;Retries&rsquo; column. If the resend process did not succeed (the frame was still not present when the timer wheel processed
+ it even though it re-requested it), it will be counted in the &lsquo;Dropped&rsquo; column.</p>
+<h3>Errors</h3>
+<p>This column captures any errors that have occurred on streams that were running during that time slice. Errors for datagrams may include network errors (<em>e.g. Winsock APIs like WSARecvFrom failing</em>) or data errors (<em>e.g. data corruption in a datagram
+ was discovered</em>).</p>
+<p>&nbsp;</p>
+<h1><a name="_Output_Options"></a>Output Options</h1>
+<p>ctsTraffic can provide detailed information about the session in a variety formats with different data points depending on desired information. The information available falls into 4 categories: connection details, error details, status updates, and jitter
+ data.</p>
+<p>When wanting to write to the console, these options can be controlled with <strong>
+&ndash;ConsoleVerbosity</strong>. This option controls what combination of the available output options will be written.</p>
+<h2>-ConsoleVerbosity</h2>
+<p>There are 6 options one can specify to control the verbosity of information written to the console.</p>
+<h3>-ConsoleVerbosity:0</h3>
+<p>With option 0, <em>nothing</em> is written to the console.</p>
+<h3>-ConsoleVerbosity:1</h3>
+<p>With option 1, only status updates are written to the console.</p>
+<h3>-ConsoleVerbosity:2</h3>
+<p>With option 2, only error details are written to the console.</p>
+<h3>-ConsoleVerbosity:3</h3>
+<p>With option 3, only connection information is written to the console.</p>
+<h3>-ConsoleVerbosity:4</h3>
+<p>With option 4, both connection information and error information are written to the console.</p>
+<h3>-ConsoleVerbosity:5</h3>
+<p>With option 5, connection information, error details, and status updates are all written to the console.</p>
+<h3>Default value: -ConsoleOutput:3</h3>
+<p>&nbsp;</p>
+<p>Additional options exist when wanting to directly write this information to file:
+<strong>&ndash;ConnectionFilename</strong>, <strong>&ndash;ErrorFilename</strong>,
+<strong>&ndash;StatusFilename</strong>, and <strong>&ndash;JitterFilename</strong>. Any set of these options can be specified, with the default being
+<em>no </em>files are created. The filenames for those options specified can be unique per option (generally recommended), or one could specific the same filename for all 4 options if one wanted to have all data points interleaved into the same file (though
+ that&rsquo;s not recommended). Splitting information across files can assist in post-processing details of what all occurred in that ctsTraffic session.</p>
+<p>Additionally, the file extension of filenames specified for the parameters <strong>
+&ndash;ConnectionFilename</strong> and <strong>&ndash;StatusFilename</strong> will control the formatting of the output written.</p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>A .csv file extension will have all status updates written in a comma-separated-values format, including column headers.
+</li><li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>A .wtl file extension will direct all output to a WTT Logfile. Note that this option will require the following Windows test binaries: wttlog.dll, Wex.Logger.dll, Wex.Common.dll, and Wex.Communication.dll.
+</li></ul>
+<p>o<span style="font:7pt 'Times New Roman'">&nbsp;&nbsp; </span><strong>Note: this option is not available in the public release as these libraries are internal to Microsoft.</strong></p>
+<ul>
+<li><span style="font:7pt 'Times New Roman'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Any other file extension will be written as clear text. </li></ul>
+<p><strong>&ndash;ErrorFilename</strong> will always be written as clear text and
+<strong>&ndash;JitterFilename</strong> will always be written as its own specified csv format.</p>
+<p>A time-stamp is written for all connection, error, and status data points (jitter doesn&rsquo;t need this as it has its own format-specific log). The time-stamp is recorded as the number of seconds relative to the start of the application and is consistent
+ across all log files and console. This helps in correlating events across files.</p>
+<h2><span style="font-size:12pt">Connection information</span></h2>
+<p>Connection details are written at connection establishment and connection closure. The connection details include the source IP and port, the destination IP and port, the success or failure of the connection, and the error information for any errors that
+ occurred. The closure details will include additional information specific to the protocol that was tested.</p>
+<p>This is sample output with TCP default options (<em>ctsTraffic.exe &ndash;Listen:*</em>) after successfully completing a single connection from a client:</p>
+<p>[0.0] TCP connection established to [::1]:4444</p>
+<p>[1.0] TCP connection completed successfully : [[::1]:5674 - [::1]:4444] : SendBytes[1073741824] SendBps[1030462403] RecvBytes[0] RecvBps[0] Time[1042 ms]</p>
+<p>&nbsp;</p>
+<p>You&rsquo;ll notice both data points begin with the time-offset in seconds within a square bracket. Information written after the address tuples is protocol-specific (specific to TCP in this case), providing the summary of that one connection. Some of these
+ same data points tracked per connection are displayed with Status Updates.</p>
+<h2>Error details</h2>
+<p>Information can be logged at the point when an error occurs, specifying the relevant details (the API that failed with the error code, for example). This can be useful when troubleshooting failures to better understand the context at the point when something
+ fails.</p>
+<p>This is sample output with TCP default options for the duplex pattern (<em>ctsTraffic.exe &ndash;Listen:* -Pattern:duplex</em>) when the client is aborted early. You&rsquo;ll notice the connection details are interleaved with the error details; this is the
+ default console logging verbosity. When multiple errors occur (in this case, both the WSASend and WSARecv failed when the client RST the connection), the first error is captured in the Connection details. This design decision was made to ensure the first error
+ was not masked by a potential waterfall of other errors which might hide the original point of failure.</p>
+<p>[8.0] TCP connection established to [::1]:5721</p>
+<p>[13.8] WSASend failed (10054) An existing connection was forcibly closed by the remote host.</p>
+<p>[13.8] WSARecv failed (10053) An established connection was aborted by the software in your host machine.</p>
+<p>[13.8] TCP connection failed with the error code 10054 : [[::1]:4444 - [::1]:5721] : SendBytes[306839552] SendBps[52857803] RecvBytes[247398400] RecvBps[42618156] Time[5805 ms]</p>
+<p>&nbsp;</p>
+<p>Errors will generally fall into 2 categories: an API failure while executing a protocol pattern (such as the above failures in
+<span style="font-size:9pt">WSASend</span> and <span style="font-size:9pt">WSARecv</span>); a validation failure while processing sent and received data. The former error type will present the error information as reported from the underlying APIs that failed;
+ the latter is specific to ctsTraffic and will have additional information specific to the logic failure that was detected (these failure types are listed below).</p>
+<p>[5.4] Connection aborted due to the protocol error ErrorNotAllDataTransferred</p>
+<p>[5.4] WSARecv failed (10054) An existing connection was forcibly closed by the remote host.</p>
+<p>&nbsp;</p>
+<p>Depending on the level of verification occurring (<strong>&ndash;Verify:Connection</strong> or
+<strong>&ndash;Verify:Data</strong>), one might see one of the below validation logic errors written should any of the connection or data integrity checks fail.</p>
+<h4><em>ErrorNotAllDataTransferred</em></h4>
+<p>This error can be returned with either <strong>&ndash;Verify:Connection</strong> or
+<strong>&ndash;Verify:Data</strong> options.</p>
+<p>This error occurs when a TCP connection is cleanly shutdown (not aborted/RST) but that end of the connection did not yet send or receive all the data expected as controlled by the
+<strong>&ndash;Transfer</strong> command line option.</p>
+<p>This error can occur if the client and server do not match their <strong>&ndash;Transfer</strong> command-line arguments, causing one side to expect to transfer fewer bytes than the other.</p>
+<h4><em>ErrorTooMuchDataTransferred</em></h4>
+<p>This error can be returned with either <strong>&ndash;Verify:Connection</strong> or
+<strong>&ndash;Verify:Data</strong> options.</p>
+<p>This error occurs when a TCP connection is cleanly shutdown (not aborted/RST) but that end of the connection received more data than expected as controlled by the
+<strong>&ndash;Transfer</strong> command line option.</p>
+<p>This error can occur if the client and server do not match their <strong>&ndash;Transfer</strong> command-line arguments, causing one side to expect to transfer more bytes than the other.</p>
+<h4><em>ErrorDataDidNotMatchBitPattern</em></h4>
+<p>This error will only be raised when <strong>&ndash;Verify:Data</strong> is specified.</p>
+<p>This error occurs when data received does not match the ctsTraffic bit-pattern that is expected to be sent.</p>
+<p>This error can occur if the client and server do not agree on <strong>&ndash;Verify</strong> settings. As the known bit-pattern will not be tracked if
+<strong>&ndash;Verify:Data</strong> is not specified, the data may be incorrect for the side that did specify
+<strong>&ndash;Verify:Data</strong> (and thus is expecting bit-patterns to be correctly tracked).</p>
+<p>A more serious scenario where this error can occur is when the data is genuinely being corrupt between the sender and the receiver. The error message will write out the buffer pointers of the expected data and corrupted data, as well as writing out the exact
+ offset which corruption occurs. An example of this failure could look like this:</p>
+<p>[1258.2] ctsIOPattern found data corruption: detected an invalid byte pattern in the returned buffer (length 59933): buffer received (000000A81683A5A0), expected buffer pattern (000000A817360091) - mismatch from expected pattern at offset (12432) [expected
+ character '0x0' didn't match '0x68']</p>
+<p>&nbsp;</p>
+<p>Because of this, if both client and server specify <strong>&ndash;Verify:Data</strong>, it&rsquo;s recommended to also specify
+<strong>&ndash;OnError:Break</strong>, which will indicate to ctsTraffic to fail fast into the debugger when an error occurs. Once in the debugger, one can further debug the corruption by using the output information to dump out the buffers to observe the bad
+ data and further troubleshoot the issue.</p>
+<h2>Status Updates</h2>
+<p>Information can also be logged to convey the runtime state during execution. Updates are written to console and/or file at a specified period, with information being printed expressing changes in what has transpired over that previous period (for example,
+ the number of bytes that were sent and received since the previous status update).</p>
+<p>The details of the status update vary depending on the protocol being tested (<a href="#_Status_Updates">Status Updates</a> under TCP Scenarios details TCP status update information;
+<a href="#_Status_Updates_1">Status Updates</a> under UDP Scenarios details UDP status update information).</p>
+<h4><em>-StatusUpdate</em></h4>
+<p>This controls the frequency that the status updates are written, specified in milliseconds. It&rsquo;s recommended to not set below 1000 milliseconds to avoid logging costs affecting the overall performance of the scenario.</p>
+<h4><em>Default value: -StatusUpdate:5000 (every 5 seconds)</em></h4>
+<p>&nbsp;</p>
+<h1><a name="_Advanced_Options"></a>Advanced Options</h1>
+<p>Additional options are available that were developed to target unique scenario requirements. These options are not required for the most common scenarios and thus are listed separately.</p>
+<h2>Unique API Options</h2>
+<p>As ctsTraffic was developed with API extensibility as a first-class requirement, additional API patterns are available for such scenarios with those unique requirements.</p>
+<h3>-Acc</h3>
+<p>This parameter is made available to control the APIs used to accept incoming TCP connections to a server from a listening socket.</p>
+<h4><em>-Acc:AcceptEx</em></h4>
+<p>The default value is AcceptEx: pre-posting asynchronous (OVERLAPPED) accept requests. This API usage scales very well as it does not require dedicated threads to be created for each call and can service high rates of incoming requests for busy servers.</p>
+<h4><em>-Acc:accept</em></h4>
+<p>Winsock also exposes a blocking API call to accept TCP connections: accept(). This API usage requires a dedicated thread as it will block until a connection arrives to be serviced. As this blocking behavior can affect scalability, it is recommended to use
+ this only in scenarios where one is not expecting to service large numbers of incoming connection requests.</p>
+<h3>-Conn</h3>
+<p>This parameter is made available to control the APIs used to make outbound TCP connections to a server.</p>
+<h4><em>-Conn:ConnectEx</em></h4>
+<p>The default value is ConnectEx: pre-posting asynchronous (OVERLAPPED) connect requests. This API usage scales very well as it does not require dedicated threads to be created for each call and can scale to satisfy high numbers of concurrent connect requests.</p>
+<h4><em>-Conn:connect</em></h4>
+<p>Winsock also exposes a blocking API call to establish outbound TCP connections: connect(). This API usage requires a dedicated thread as it will block until the connection attempt completes successfully or fails. As this blocking behavior can affect scalability,
+ it is recommended to use this only in scenarios where one is not expecting to make large numbers of outbound connections.</p>
+<h3>-IO</h3>
+<p>This parameter is made available to offer API patterns conducting IO in addition to the above
+<a href="#_-IO">TCP &ndash;IO</a> options <em>(iocp for using Winsock APIs with OVERLAPPED I/O leveraging IO completion ports; rioiocp for using the Winsock Registered I/O APIs with IO completion ports for notification)</em>.</p>
+<h4><em>-IO:ReadWriteFile</em></h4>
+<p>As Winsock SOCKET handles create FILE_OBJECTs in the Winsock kernel, the Winsock file APIs ReadFile and WriteFile can be used directly on SOCKET handles. This IO option will exercise the scenario where ReadFile (used to receive from a socket) and WriteFile
+ (used to send on a socket) are called asynchronously using OVERLAPPED I/O and IO completion port completion routines.</p>
+<h3>-Options</h3>
+<p>By default, ctsTraffic does not set any specific socket option (via setsockopt()), change the IO mode of a socket (via ioctlsocket()), or make any IOCTL call on a socket (via WSAIoctl) with one exception: all server TCP sockets have keep-alives enabled.</p>
+<h4><em>-Option:keepalive</em></h4>
+<p>This option will enable keep-alive probes on all TCP sockets. Keep-alive probes are beneficial to detect when the remote TCP endpoint is no longer available &ndash; notably when that remote endpoint did not RST or FIN the connection before going away. This
+ occurs in a variety of real-world scenarios. For example, if a router between the 2 endpoints fails and another route cannot be found, all packets are dropped. Another scenario is if the remote endpoint bugchecks (blue screens) or loses power.</p>
+<p>These scenarios can be problematic when attempting to receive from that remote endpoint, as that recv will not be notified the remote endpoint is down and will just wait for data &ndash; as it never receives a RST or FIN. As all send requests are required
+ to be acknowledged (ACK&rsquo;d), send requests are not affected by this TCP behavior.</p>
+<p>The keep-alive option will instruct the TCP/IP stack to re-request the previous ACK when it has not seen any packets from that remote endpoint for a period of time.</p>
+<h4><em>-Option:TcpFastPath</em></h4>
+<p>This option was added to Windows with the Windows 8 release. It is exclusive to TCP over loopback, where both side of the TCP connection each set this socket option. In this scenario, this option will allow the TCP/IP stack to take a highly optimized path,
+ increasing throughput availability and lowering latencies.</p>
+<h2>Unique Runtime Behavior Options</h2>
+<p>Additional options are provided for users who need specific custom network behavior provided with ctsTraffic.</p>
+<h3>-OnError</h3>
+<p>This is provided to enable the user to control how ctsTraffic reacts when an error is encountered (&lsquo;an error&rsquo; being anything that would result in a failure on a socket and thus being written to the error logfile).</p>
+<h4><em>-OnError:Log</em></h4>
+<p>The default behavior is to write the error to the console (if <strong>&ndash;ConsoleVerbosity</strong> allows for error information) and/or write to the error log file (if
+<strong>&ndash;ErrorFilename</strong> was specified).</p>
+<h4><em>-OnError:Break</em></h4>
+<p>This option is added to facilitate troubleshooting by breaking into the debugger when an error occurs. This option can be useful when trying to capture the state when an error occurs or when debugging corruption.</p>
+<p>Note that it is highly recommended to have ctsTraffic already running under a user-mode debugger (such as ntsd, cdb, or WinDbg) as this break will be fatal (it&rsquo;s a 2<sup>nd</sup>-chance exception which will immediately terminate the process if a debugger
+ is not there to debug the process). A kernel debugger can also be used if the deployment has it setup, though this is not required.</p>
+<h3>-PrePostRecvs</h3>
+<p>By default, ctsTraffic will keep one outstanding receive call for all TCP and UDP connections. This generally scales well and is the most common coding pattern. This option allows for more than one receive to be outstanding on all sockets. For example, if
+<strong>&ndash;PrePostRecvs:2</strong> is specified, every connection will have its receive API called multiple times to ensure that there are 2 pending calls at all times. When used judiciously, this option can allow for scaling up to greater throughput. As
+ with all things Performance related, there aren&rsquo;t guarantees here J.</p>
+<h3>-RateLimitPeriod</h3>
+<p>This option direct affects how <strong>&ndash;RateLimit</strong> behaves. <strong>
+&ndash;RateLimit</strong> throttles throughput across TCP connections to the specified number of bytes per second. It does this by slicing each 1-second period into smaller periods and throttles to those sub-second periods. For example, specifying
+<strong>&ndash;RateLimit:100000</strong> will ensure that no more than 100,000 bytes will be sent each second. It does so by throttling to each 1/100<sup>th</sup> of a second (by default) &ndash; working to keep each 1/100<sup>th</sup> of a second sending only
+ up to 1000 bytes. It performs this way to keep throughput more predictable and avoid large peaks and valleys.</p>
+<p><strong>&ndash;RateLimitPeriod</strong> controls this per-second slicing value. As referenced in the above example, the default value is 100. Increasing
+<strong>&ndash;RateLimitPeriod </strong>will create an even more predictable flow over time (as the flow rate will be measured within smaller timeframes) and increasing this value will potentially allow for greater variance in the throughput of the connection.</p>
+<p>Note that <strong>&ndash;Buffer</strong> will always take precedence over the suggested number of bytes to send as calculated with
+<strong>&ndash;RateLimitPeriod </strong>and<strong> &ndash;RateLimitPeriod</strong>. For example, if the user has specified
+<strong>&ndash;Buffer:10000</strong> but specified <strong>&ndash;RateLimit:100000 &ndash;RateLimitPeriod:100</strong> (which means each 1/100<sup>th</sup> of a second up to 1000 bytes will be sent). Since the buffer is 10,000 bytes, the start of the 1-second
+ period will send the full 10,000 bytes (respecting <strong>&ndash;Buffer</strong> first), but will not send any data for the next 9 1/100<sup>th</sup> of a second periods (since 10,000 bytes will be sent, it will wait until the
+<strong>&ndash;RateLimit</strong> allows for more data to be sent).</p>
+<h3>-ThrottleConnections</h3>
+<p>This option allows the user to change the gate behavior of ctsTraffic when making output TCP connections. By default, ctsTraffic will allow up to 1000 outstanding connection requests. It does this to have a more graceful build-up of connections to reach
+ the target number of connections. If the scenario requires, this value can be lowered (for a longer build-up) or raised (to allow for a more resource demanding burst of connection requests).</p>
+<h3>-TimeLimit</h3>
+<p>This options allows for exiting the application based off expired time as a &ldquo;last-resort&rdquo;. The default and suggested behavior is to control the lifetime of the instance of ctsTraffic based on the work it was asked to perform. For example, the
+ client would control this via <strong>&ndash;Connections</strong> and <strong>&ndash;Iterations</strong>, while the server would control this via
+<strong>&ndash;ServerExitLimit</strong>. If the time limit is hit before the settings specified complete the scenario, the process will exit with errors logged when any existing connections were aborted.</p>
+<h2>Unique Deployment Options</h2>
+<p>The above options were designed to satisfy them majority of deployment scenarios. These additional options are provided to enable scenarios that had unique requirements.</p>
+<h3>-Bind</h3>
+<p>The default behavior for clients is to not bind to any one specific address before trying to connect to a target, but allow the stack to perform an
+<em>implicit bind</em>: meaning ctsTraffic will ask the stack to choose the most appropriate interface and address to use to connect to the target address (based primarily off the routing table). This option gives the end-user the control to specify exactly
+ which address (or addresses) to exclusively use when making outbound connections.</p>
+<p>This is useful in multi-homed scenarios where one wants to have immediate control over which interface is used to establish a connection.</p>
+<p>One should be cautious using this option. ctsTraffic will round-robin through all addresses given to
+<strong>&ndash;Bind</strong> which match the target IP address class (IPv4 or IPv6) and will not query to see if there is a route from the chosen bind address to the target address. The user should ensure that routes exist from all addresses passed to
+<strong>&ndash;Bind</strong> and all addresses resolved to <strong>&ndash;Target</strong>.</p>
+<h3>-Compartment</h3>
+<p>This option was added for a new feature added to Windows Server 2012 R2: the ability to add IP Interface compartments on Virtual NICs in a Hyper-V datacenter deployment. The targeted scenario for this option is for virtual gateway deployments, where the
+ datacenter hoster wants to consolidate their gateway VMs bridging the hosted virtual networks with the outside world. Compartments maintain complete IP isolation between the hosted virtual networks, enabling a router, NAT, or Site-to-Site VPN gateway for multiple
+ tenants, all on a single gateway Hyper-V deployment.</p>
+<p>This option expected the Interface Alias (&ldquo;ifAlias&rdquo;) of the IP Interface Compartment desired to be targeted. This Interface alias will affect all Winsock and network usage, including IP addresses for binding, routing tables for connecting, and
+ neighbors for direct communication.</p>
+<p>The Interface Alias can be easily discovered through Powershell commandlets, such as &ldquo;Get-NetIPConfiguration &ndash;detailed&rdquo; or &ldquo;Get-NetIPInterface&rdquo;.</p>
+<h3>-LocalPort</h3>
+<p>The default behavior for clients is to not bind to any one specific port before trying to connect to a target, but allow the stack to find an available port on its behalf. This is the highly suggested method clients should use as very few client application
+ should rely on having exclusive access to a TCP or UDP port. There are scenarios which exist which
+<em>do </em>have such requirements. This option will attempt to bind all local sockets to this port before trying to connect. Use cautiously, as ports can only be used once. Therefore very few concurrent connections can be established by using the same local
+ port.</p>
+</div><div class="ClearBoth"></div>
