@@ -1,0 +1,12 @@
+Build Output Directories:
+
+
+$(SolutionDir)Output\$(Platform)\$(Configuration)\
+$(SolutionDir)IntDir\$(ProjectName)\$(Platform)\$(Configuration)\
+
+
+UnitTests
+
+$(SolutionDir)Output\UnitTests\$(Platform)\$(Configuration)\
+$(SolutionDir)IntDir\UnitTests\$(ProjectName)\$(Platform)\$(Configuration)\
+

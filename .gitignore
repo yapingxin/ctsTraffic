@@ -22,3 +22,5 @@
 /MSTest/Debug
 /ctsPerf/*.csv
 /MSTest/Release
+/Output
+/IntDir
